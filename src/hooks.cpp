@@ -8,6 +8,7 @@
 #include "fsr.h"
 #include "game.h"
 #include "hdr.h"
+#include "hud.h"
 #include "material.h"
 #include "overlay.h"
 #include "rescale.h"
@@ -312,8 +313,9 @@ namespace
         return RouteTaa(ctx, fc);
     }
 
-    // Returns true if the draw must be skipped. fullscreenCandidate: at most 6 vertices/indices, one instance.
-    bool OnDraw(ID3D11DeviceContext* ctx, bool fullscreenCandidate)
+    // Returns true if the draw must be skipped. count: vertices or indices; fullscreenCandidate: at most 6 of them,
+    // one instance.
+    bool OnDraw(ID3D11DeviceContext* ctx, UINT count, bool fullscreenCandidate)
     {
         if (cb::IsDisplayResolution(ctx))
         {
@@ -321,8 +323,9 @@ namespace
             rescale::BeforeDraw(ctx);
         }
         if (capture::Active())
-            capture::LogDraw(ctx);
+            capture::LogDraw(ctx, count);
         material::OnDraw(ctx);
+        hud::OnDraw(ctx);
         return hdr::OnDraw(ctx, fullscreenCandidate);
     }
 
@@ -351,16 +354,19 @@ namespace
 
             // A full-screen pass: one triangle or quad (Draw, DrawIndexed) and, if instanced, a single instance.
             auto params = std::tuple(args...);
-            bool fullscreen = std::get<0>(params) <= 6;
+            UINT count = std::get<0>(params);
+            bool fullscreen = count <= 6;
             if constexpr (sizeof...(Args) >= 4)  // DrawInstanced / DrawIndexedInstanced: (count, instances, ...)
                 fullscreen = fullscreen && std::get<1>(params) == 1;
-            if (OnDraw(self, fullscreen))
+            if (OnDraw(self, count, fullscreen))
                 return;
             original(self, args...);
             if (hdr::NeedsAfterDraw())
                 hdr::AfterDraw(self);
             if (material::NeedsAfterDraw())
                 material::AfterDraw(self);
+            if (hud::NeedsAfterDraw())
+                hud::AfterDraw(self);
         }
     };
     template <int N> using DrawIndexedThunk          = DrawThunk<N, UINT, UINT, INT>;
@@ -738,6 +744,7 @@ void hooks::OnFrame()
 
     fsr::OnFrame();
     material::OnFrame();
+    hud::OnFrame();
     console::SetOverrides(QualityOverrides(*cfg));
     console::OnFrame();
     bool scaleActive = cfg->forceScale && g_frame >= kScaleStartFrame;

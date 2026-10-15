@@ -19,7 +19,7 @@ rem The mod itself (latest C++ standard: C++23 and the C++26 parts MSVC implemen
 cl /nologo /std:c++latest /permissive- /O2 /MT /EHsc /W4 /wd4100 /DUNICODE /D_UNICODE /D_WINDOWS ^
    /Ithird_party\minhook\include /I%IG% /I%IG%\backends ^
    src\core.cpp src\config.cpp src\proxy.cpp src\game.cpp src\cbuffers.cpp src\shader_info.cpp src\capture.cpp ^
-   src\console.cpp src\hooks.cpp src\fsr.cpp src\hdr.cpp src\rescale.cpp src\ssgi.cpp src\material.cpp src\shader_patch.cpp src\overlay.cpp src\ui.cpp src\counter.cpp ^
+   src\console.cpp src\hooks.cpp src\fsr.cpp src\hdr.cpp src\rescale.cpp src\ssgi.cpp src\material.cpp src\hud.cpp src\shader_patch.cpp src\overlay.cpp src\ui.cpp src\counter.cpp ^
    src\imgui_impl_dx11_precompiled.cpp ^
    build\buffer.obj build\hook.obj build\trampoline.obj build\hde64.obj ^
    build\imgui.obj build\imgui_draw.obj build\imgui_tables.obj build\imgui_widgets.obj build\imgui_impl_win32.obj ^

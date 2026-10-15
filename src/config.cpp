@@ -78,6 +78,7 @@ namespace
         visit(L"General", L"RenderScale",              c.renderScale,        Saved, 0.33f, 1.0f);
         visit(L"General", L"UnlockCvars",              c.unlockCvars,        Saved);
         visit(L"General", L"UltraPlus",                c.ultraPlus,          Saved);
+        visit(L"General", L"UltrawideHud",             c.ultrawideHud,       Saved);
         visit(L"Debug",   L"DumpShaders",              c.dumpShaders,        IniOnly);
 
         visit(L"Keys", L"Capture",      c.keyCapture,     IniOnly);

@@ -20,6 +20,7 @@ namespace cb
 {
     constexpr UINT kPerViewSize     = 800;
     constexpr UINT kPerInstanceSize = 160;
+    constexpr UINT kUiConstantsSize = 128;  // Iggy (Flash UI) vertex constants (8 float4)
 
     // Byte offsets inside PerViewCB (b1).
     namespace perview

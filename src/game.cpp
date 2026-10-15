@@ -46,6 +46,9 @@ namespace
 
         constexpr uintptr_t kGameWindow = 0x143137F40;  // HWND
 
+        // arkGameLogicManager::CommitSwitch (applies a requested state switch), called on every game logic update.
+        constexpr uintptr_t kGameLogicCommitSwitch = 0x140787510;
+
         // sub_140064E00 queues the boot videos unless its skip flag is set ("test sil, sil; jnz"); making the jnz
         // unconditional skips them. (Deleting the .bk2 files instead hangs the game on a black screen.)
         constexpr uintptr_t kIntroVideoBranch = 0x140064F08;
@@ -112,6 +115,11 @@ namespace
         constexpr size_t kJobEngineCtx = 0x108;  // render job: engine context, ID3D11DeviceContext* at +0
 
         constexpr size_t kMouseDevice = 0x178;   // idMouseWin32: IDirectInputDevice8*
+
+        // arkGameLogicManager: state stack idList < arkGameLogicStateIds_t > (int*, count in the low 24 bits).
+        constexpr size_t kLogicStateStack = 1320;
+        constexpr size_t kLogicStateCount = 1328;
+        constexpr int    kLogicStateMax   = 17;
 
         // idRenderView. Scaled/unscaled idScreenRect pairs lie 24 bytes apart.
         constexpr size_t kViewFlagsSubview    = 14900;  // bit 0: portal/subview, the engine skips TAA
@@ -424,6 +432,31 @@ namespace
             return 0;
         }
         return o_MenuAdaptiveResolution(menu, item, readOnly);
+    }
+
+    // ---- Game logic state ---------------------------------------------------------------------------------------
+
+    // The state is read inside the manager's own update, while it is certainly alive: the game creates and destroys
+    // managers during startup, so a pointer kept for later can dangle.
+    using PFN_CommitSwitch = int64_t(__fastcall*)(void*, int64_t, int64_t);
+    PFN_CommitSwitch               o_CommitSwitch;
+    std::atomic<game::LogicState> g_logicState{ game::LogicState::Unknown };
+
+    game::LogicState TopState(const void* manager)
+    {
+        uint32_t count = FieldAt<uint32_t>(manager, layout::kLogicStateCount) & 0xFFFFFF;
+        const int* stack = FieldAt<const int*>(manager, layout::kLogicStateStack);
+        if (count == 0 || count > 64 || !stack)
+            return game::LogicState::None;
+        int top = stack[count - 1];
+        return top >= 0 && top < layout::kLogicStateMax ? static_cast<game::LogicState>(top) : game::LogicState::Unknown;
+    }
+
+    int64_t __fastcall Hook_CommitSwitch(void* manager, int64_t a2, int64_t a3)
+    {
+        int64_t result = o_CommitSwitch(manager, a2, a3);
+        g_logicState = TopState(manager);
+        return result;
     }
 
     // ---- Frame tick and mouse -----------------------------------------------------------------------------------
@@ -885,6 +918,7 @@ void game::InstallRenderHooks()
     hooks::InstallInline(At<void>(addr::kMenuRefreshAdaptive), &Hook_MenuRefreshAdaptive, &o_MenuRefreshAdaptive,
                          "menu adaptive refresh");
     hooks::InstallInline(At<void>(addr::kMenuUpdate), &Hook_MenuUpdate, &o_MenuUpdate, "menu update");
+    hooks::InstallInline(At<void>(addr::kGameLogicCommitSwitch), &Hook_CommitSwitch, &o_CommitSwitch, "game logic state");
 }
 
 bool game::PostUpscaleAvailable()
@@ -990,6 +1024,21 @@ void game::ApplyCvarUnlock(bool unlock)
 {
     if (g_base)
         g_cvarUnlock.Apply(unlock);
+}
+
+game::LogicState game::CurrentLogicState()
+{
+    return g_logicState;
+}
+
+const char* game::LogicStateName(LogicState state)
+{
+    static constexpr const char* kNames[] = { "none", "in game", "pause", "notification", "read note", "cinematic",
+                                              "main menu", "journal", "power wheel", "conversation", "black market",
+                                              "results", "tutorial", "game over", "character choice", "map transition",
+                                              "demo" };
+    int index = static_cast<int>(state);
+    return index >= 0 && index < static_cast<int>(std::size(kNames)) ? kNames[index] : "unknown";
 }
 
 bool game::IsDisplayResolutionPost()

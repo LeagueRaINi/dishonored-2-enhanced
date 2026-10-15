@@ -147,6 +147,12 @@ namespace
                    "(instead of 25), 16x anisotropic filtering, full-quality skin shading. Turning it off restores\n"
                    "the values from before.");
 
+        ImGui::SeparatorText("Ultrawide");
+        ImGui::Checkbox("HUD at the screen edges", &c.ultrawideHud);
+        HelpMarker("The game keeps its HUD inside a centred 16:9 area. This moves the elements on its sides\n"
+                   "(health and mana) out to the edges of wider screens. Markers, the crosshair, the hotbar and\n"
+                   "menus stay as they are. No effect at 16:9.");
+
         ImGui::SeparatorText("HDR");
         hdr::Status hdrStatus = hdr::GetStatus();
         if (hdrStatus.active)

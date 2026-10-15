@@ -20,6 +20,7 @@ struct Config
     float renderScale     = 0.667f;  // per-axis render scale = 1 / upscale ratio
     bool  unlockCvars     = true;    // allow setting cvars the retail build locks ("CANNOT be set in retail")
     bool  ultraPlus       = false;   // engine settings beyond the menu's Ultra (shadows, LOD, filtering)
+    bool  ultrawideHud    = true;    // HUD elements at the screen edges on screens wider than 16:9 (hud.h)
 
     // [Debug] (ini only)
     bool  dumpShaders     = false;   // write every created shader's bytecode to <mod folder>\captures\shaders

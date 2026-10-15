@@ -25,6 +25,16 @@ namespace game
     void ApplyJitterPattern(bool halton);  // the Halton table follows the applied render scale
     void ApplyCvarUnlock(bool unlock);     // lifts the retail lock on cvars without the "settable" flag
 
+    // The game logic state machine (arkGameLogicManager): what the game shows, from its state stack.
+    enum class LogicState
+    {
+        Unknown = -1,  // not seen yet, or an unsupported build
+        None, InGame, Pause, Notification, ReadNote, Cinematic, MainMenu, Journal, Powerwheel, Conversation,
+        BlackMarket, Results, Tutorial, GameOver, CharacterChoice, MapTransition, Demo,
+    };
+    LogicState CurrentLogicState();  // the active state (top of the stack) after the game logic's last update
+    const char* LogicStateName(LogicState state);
+
     // Render workers, at the TAA dispatch inside PostFX_TemporalAA_and_Post (upscale mode).
     bool IsDisplayResolutionPost();        // this job will run the rest of its post chain at display resolution
     void SwitchPostToDisplayResolution(ID3D11DeviceContext* ctx);  // call once the display-size image is recorded

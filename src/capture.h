@@ -12,5 +12,5 @@ namespace capture
     void End(uint64_t frame);  // at the next frame boundary
     bool Active();
     void LogDispatch(ID3D11DeviceContext* ctx, UINT x, UINT y, UINT z);
-    void LogDraw(ID3D11DeviceContext* ctx);
+    void LogDraw(ID3D11DeviceContext* ctx, UINT count);  // count: vertices or indices of the draw
 }

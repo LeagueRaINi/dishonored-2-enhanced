@@ -145,7 +145,9 @@ namespace
         static_cast<ID3D11Buffer*>(resource)->GetDesc(&desc);
         if (!(desc.BindFlags & D3D11_BIND_CONSTANT_BUFFER))
             return 0;
-        return desc.ByteWidth == cb::kPerViewSize || desc.ByteWidth == cb::kPerInstanceSize ? desc.ByteWidth : 0;
+        bool tracked = desc.ByteWidth == cb::kPerViewSize || desc.ByteWidth == cb::kPerInstanceSize ||
+                       desc.ByteWidth == cb::kUiConstantsSize;
+        return tracked ? desc.ByteWidth : 0;
     }
 
     void StoreShadow(ID3D11Resource* resource, const void* data, UINT size)

@@ -1,8 +1,10 @@
 #include "capture.h"
 
 #include "cbuffers.h"
+#include "hud.h"
 #include "shader_info.h"
 
+#include <algorithm>
 #include <atomic>
 #include <iterator>
 #include <mutex>
@@ -265,8 +267,89 @@ void capture::LogDispatch(ID3D11DeviceContext* ctx, UINT x, UINT y, UINT z)
     LogFileOnly("{}", out);
 }
 
-void capture::LogDraw(ID3D11DeviceContext* ctx)
+namespace
 {
+    // One line per UI draw: its constant buffer and where its local origin lands in clip space.
+    void LogUiDraw(ID3D11DeviceContext* ctx, uint64_t vsHash, UINT count)
+    {
+        ComPtr<ID3D11PixelShader> ps;
+        ctx->PSGetShader(&ps, nullptr, nullptr);
+        ShaderInfo psInfo;
+        ReadShaderInfo(ps.Get(), psInfo);
+        ComPtr<ID3D11ShaderResourceView> srv;
+        ctx->PSGetShaderResources(0, 1, &srv);
+        std::string texture = "none";
+        if (srv)
+        {
+            ComPtr<ID3D11Resource> resource;
+            srv->GetResource(&resource);
+            texture = DescribeResource(resource.Get());
+        }
+        // Clipping: scissor rectangle (if the rasterizer state enables it) and stencil testing (UI masks).
+        ComPtr<ID3D11RasterizerState> rasterizer;
+        ctx->RSGetState(&rasterizer);
+        D3D11_RASTERIZER_DESC rd = {};
+        if (rasterizer)
+            rasterizer->GetDesc(&rd);
+        UINT scissors = 0;
+        ctx->RSGetScissorRects(&scissors, nullptr);
+        D3D11_RECT scissor = {};
+        if (scissors)
+        {
+            scissors = 1;
+            ctx->RSGetScissorRects(&scissors, &scissor);
+        }
+        ComPtr<ID3D11DepthStencilState> depthStencil;
+        UINT stencilRef = 0;
+        ctx->OMGetDepthStencilState(&depthStencil, &stencilRef);
+        D3D11_DEPTH_STENCIL_DESC dd = {};
+        if (depthStencil)
+            depthStencil->GetDesc(&dd);
+        std::string what = std::format("ctx={} type={} count={} ps={:016x} t0 {} | scissor {} ({},{})-({},{}) stencil {} ref {} "
+                                       "func {} pass {}",
+                                       Ptr(ctx), static_cast<int>(ctx->GetType()), count, psInfo.hash, texture,
+                                       rd.ScissorEnable ? "on" : "off", scissor.left, scissor.top, scissor.right, scissor.bottom,
+                                       dd.StencilEnable ? "on" : "off", stencilRef, static_cast<int>(dd.FrontFace.StencilFunc),
+                                       static_cast<int>(dd.FrontFace.StencilPassOp));
+        ComPtr<ID3D11Buffer> buffer;
+        ctx->VSGetConstantBuffers(0, 1, &buffer);
+        if (!buffer)
+        {
+            LogFileOnly("     ui draw vs={:016x}: no cb0 | {}", vsHash, what);
+            return;
+        }
+        D3D11_BUFFER_DESC desc;
+        buffer->GetDesc(&desc);
+        cb::Snapshot s;
+        if (!cb::Read(buffer.Get(), s))
+        {
+            LogFileOnly("     ui draw vs={:016x}: cb0 {} bytes usage={} res={} (no shadow) | {}", vsHash, desc.ByteWidth,
+                        static_cast<int>(desc.Usage), Ptr(buffer.Get()), what);
+            return;
+        }
+        auto row = [&s](int r) { return std::format("({:.4f} {:.4f} {:.4f} {:.4f})", s.Get<float>(r * 16), s.Get<float>(r * 16 + 4),
+                                                    s.Get<float>(r * 16 + 8), s.Get<float>(r * 16 + 12)); };
+        // Local origin (0, 0, 0, 1) -> stage (row0.w, row1.w) -> clip through rows 5-7, divided by the third coordinate.
+        float sx = s.Get<float>(12), sy = s.Get<float>(28);
+        float cx = sx * s.Get<float>(80) + sy * s.Get<float>(96) + s.Get<float>(112);
+        float cy = sx * s.Get<float>(84) + sy * s.Get<float>(100) + s.Get<float>(116);
+        float cw = sx * s.Get<float>(88) + sy * s.Get<float>(104) + s.Get<float>(120);
+        LogFileOnly("     ui draw vs={:016x}: anchor clip ({:.3f}, {:.3f}) stage ({:.1f}, {:.1f}) rows0-1 {} {} rows5-7 {} {} {} | {}",
+                    vsHash, cw != 0.0f ? cx / cw : 0.0f, cw != 0.0f ? cy / cw : 0.0f, sx, sy, row(0), row(1), row(5), row(6),
+                    row(7), what);
+    }
+}
+
+void capture::LogDraw(ID3D11DeviceContext* ctx, UINT count)
+{
+    {
+        ComPtr<ID3D11VertexShader> vs;
+        ctx->VSGetShader(&vs, nullptr, nullptr);
+        ShaderInfo info;
+        if (vs && ReadShaderInfo(vs.Get(), info) && hud::IsUiVertexShader(info.hash))
+            LogUiDraw(ctx, info.hash, count);
+    }
+
     ComPtr<ID3D11PixelShader> ps;
     ctx->PSGetShader(&ps, nullptr, nullptr);
     ComArray<ID3D11RenderTargetView, D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT> rtvs;
