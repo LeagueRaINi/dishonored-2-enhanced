@@ -4,8 +4,9 @@ A rendering and quality-of-life mod for the PC version of Dishonored 2. It loads
 modern upscaling, HDR output, screen-space global illumination and reflections, colour grading and an in-game
 settings overlay. Nothing in the game's files is modified on disk.
 
-> **Status:** a personal project, developed and tested on one machine with the **Steam version** of the game. Expect
-> rough edges and read the log (`d2enhanced\logs\d2enhanced.log`) when something misbehaves.
+> **Work in progress.** A personal project, developed and tested on one machine (AMD RX 7900 XTX, 3440x1440, DXVK) with
+> the **Steam version** of the game. Features change, some are experimental, and there will be bugs: read the log
+> (`d2enhanced\logs\d2enhanced.log`) when something misbehaves, and attach it to issues.
 
 ## Features
 
@@ -36,7 +37,18 @@ settings overlay. Nothing in the game's files is modified on disk.
   cap (experimental), which removes the stutter the game otherwise shows above 120 fps.
 - Mouse input fixes (no dropped movement on frame hitches), intro video skip.
 - Frame time counter with several layouts and a benchmark recorder (F11).
-- Optional DXVK backend (a patched DXVK 3.1.1 that can share textures with D3D12).
+- HUD at the screen edges on ultrawide displays (the game keeps it in a centred 16:9 area).
+- DXVK backend (a patched DXVK 3.1.1 that can share textures with D3D12), see below.
+
+### DXVK or native D3D11
+
+The mod runs on the game's own D3D11 and on DXVK (D3D11 on Vulkan). **DXVK is recommended**: the game is CPU-bound in
+the D3D11 driver, and on the development machine DXVK runs it at about 170 fps against 90 natively. The mod is developed
+on DXVK; native D3D11 has been tested with the same features except HDR output, which has only been tested with DXVK
+(on native D3D11 the mod falls back to SDR if Windows refuses the HDR swap chain).
+
+DXVK has to be the patched build from this repository (`patches\dxvk-3.1.1-d3d12-interop.patch`): stock DXVK can't
+share textures with the D3D12 device FSR runs on.
 
 ## Requirements
 
@@ -50,22 +62,28 @@ settings overlay. Nothing in the game's files is modified on disk.
 
 ## Installation
 
-**Release build:** download the zip from the [latest release](https://github.com/LeagueRaINi/dishonored-2-enhanced/releases/latest)
-and extract it into the game folder (`...\steamapps\common\Dishonored2`, next to `Dishonored2.exe`). It contains
-`d3d11.dll`, `d2enhanced.ini` and AMD's signed FidelityFX DLLs. Start the game and press **F2** for the settings
-overlay. The mod creates a `d2enhanced\` folder there for its log.
+**Release build:** the [latest release](https://github.com/LeagueRaINi/dishonored-2-enhanced/releases/latest) has two
+zips. Extract one into the game folder (`...\steamapps\common\Dishonored2`, next to `Dishonored2.exe`), start the game
+and press **F2** for the settings overlay:
+- `...-dxvk.zip` (recommended): the mod, AMD's signed FidelityFX DLLs and the patched DXVK (`dxgi.dll` and
+  `dxvk.conf` next to the exe, its `d3d11.dll` in `d2enhanced\dxvk\`).
+- `...-native.zip`: the mod and the FidelityFX DLLs, on the game's own D3D11.
+
+The mod creates `d2enhanced\logs\` there for its log. Switching later: delete `dxgi.dll` and `dxvk.conf` for native,
+or extract the DXVK zip over the native install.
 
 **Own build:** build the mod (below), then copy into the game folder:
 - `d3d11.dll` (from `build\`) and `d2enhanced.ini`
 - `amd_fidelityfx_loader_dx12.dll` and `amd_fidelityfx_upscaler_dx12.dll` from
   `third_party\FidelityFX-SDK\Kits\FidelityFX\signedbin\`
 
-Keep the repository itself as `d2enhanced\` inside the game folder if you want the optional DXVK backend; logs and
-captures go there too.
+Keep the repository itself as `d2enhanced\` inside the game folder if you want the DXVK backend; logs and captures
+go there too.
 
 In the game's graphics menu, anti-aliasing must stay on TAA (the mod enforces this while FSR is on).
 
-To uninstall, delete `d3d11.dll` from the game folder (and `dxgi.dll` / `dxvk.conf` if you switched to DXVK).
+To uninstall, delete `d3d11.dll`, `d2enhanced.ini`, the two `amd_fidelityfx_*.dll` and the `d2enhanced` folder from
+the game folder, plus `dxgi.dll` and `dxvk.conf` with DXVK.
 
 ### Hotkeys
 

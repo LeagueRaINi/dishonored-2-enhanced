@@ -1,5 +1,5 @@
 diff --git a/src/d3d11/d3d11_device.cpp b/src/d3d11/d3d11_device.cpp
-index 97df7a0..c451390 100644
+index 97df7a0..6bff630 100644
 --- a/src/d3d11/d3d11_device.cpp
 +++ b/src/d3d11/d3d11_device.cpp
 @@ -1,4 +1,5 @@
@@ -13,7 +13,7 @@ index 97df7a0..c451390 100644
        Logger::warn(str::format("D3D11Device::OpenSharedResource1: Unexpected size: ", query.PrivateRuntimeDataSize));
      } else {
 -      D3DDDI_OPENALLOCATIONINFO2 alloc = { };
-+      // fsr4mod: resources created by other runtimes (D3D12) need their driver data buffers supplied,
++      // d2enhanced: resources created by other runtimes (D3D12) need their driver data buffers supplied,
 +      // the zero-sized dummy only works for DXVK-created allocations.
 +      std::vector<D3DDDI_OPENALLOCATIONINFO2> allocs(std::max(query.NumAllocations, 1u));
 +      std::vector<char> totalDriverData(std::max(query.TotalPrivateDriverDataSize, 1u));
@@ -46,7 +46,7 @@ index 97df7a0..c451390 100644
 -      Logger::warn(str::format("D3D11Device::ConvertRuntimeDescriptor: D3D12 descriptor conversion not implemented"));
 -      return false;
 +    if (size >= sizeof(d3dkmt.d3d12) && d3dkmt.d3d12.d3d11.dxgi.size == sizeof(d3dkmt.d3d12.d3d11) && d3dkmt.d3d12.d3d11.dxgi.version == 0) {
-+      // fsr4mod: import 2D textures created by a D3D12 device (used for D3D12 <-> DXVK interop).
++      // d2enhanced: import 2D textures created by a D3D12 device (used for D3D12 <-> DXVK interop).
 +      const D3D12_RESOURCE_DESC& rd = d3dkmt.d3d12.desc;
 +      if (rd.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE2D) {
 +        Logger::warn(str::format("D3D11Device::ConvertRuntimeDescriptor: Unsupported D3D12 dimension: ", uint32_t(rd.Dimension)));
@@ -95,19 +95,19 @@ index 2da6f5c..7595fef 100644
      }
  
 diff --git a/src/d3d11/d3d11_texture.h b/src/d3d11/d3d11_texture.h
-index 589603c..0a665be 100644
+index 589603c..684776c 100644
 --- a/src/d3d11/d3d11_texture.h
 +++ b/src/d3d11/d3d11_texture.h
 @@ -51,6 +51,7 @@ namespace dxvk {
      UINT             CPUAccessFlags;
      UINT             MiscFlags;
      D3D11_TEXTURE_LAYOUT TextureLayout;
-+    BOOL             ImportD3D12Resource = FALSE;  // fsr4mod: shared handle refers to a D3D12 resource
++    BOOL             ImportD3D12Resource = FALSE;  // d2enhanced: shared handle refers to a D3D12 resource
    };
  
  
 diff --git a/src/util/util_gdi.h b/src/util/util_gdi.h
-index b715e34..3898eb9 100644
+index b715e34..ea080aa 100644
 --- a/src/util/util_gdi.h
 +++ b/src/util/util_gdi.h
 @@ -426,7 +426,9 @@ namespace dxvk {
@@ -116,7 +116,7 @@ index b715e34..3898eb9 100644
        struct d3dkmt_d3d11_desc    d3d11;  /* if dxgi.size == sizeof(d3d11) && dxgi.version == 4 && sizeof(desc) >= sizeof(d3d11) */
 -      struct d3dkmt_d3d12_desc    d3d12;  /* if dxgi.size == sizeof(d3d11) && dxgi.version == 0 && sizeof(desc) == sizeof(d3d12) */
 +      struct d3dkmt_d3d12_desc    d3d12;  /* if dxgi.size == sizeof(d3d11) && dxgi.version == 0 && sizeof(desc) >= sizeof(d3d12) */
-+      /* fsr4mod: newer Windows builds (26100+) append fields to the D3D12 descriptor (280 bytes instead of 0x108) */
++      /* d2enhanced: newer Windows builds (26100+) append fields to the D3D12 descriptor (280 bytes instead of 0x108) */
 +      UINT8                       raw[1024];
    };
  
