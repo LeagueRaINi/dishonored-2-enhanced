@@ -86,6 +86,10 @@ std::filesystem::path ModFile(std::wstring_view folder, std::wstring_view name);
 
 // ---- Misc ---------------------------------------------------------------------------------------------------------
 
+// Set around code that reads memory it can't validate and handles access violations itself (SEH): the crash logger
+// in proxy.cpp ignores faults on this thread meanwhile.
+inline thread_local bool t_faultsExpected = false;
+
 uint64_t Fnv1a64(std::span<const std::byte> data);
 
 using Float4x4 = std::array<float, 16>;  // engine matrices, stored as the engine's constant buffers hold them

@@ -84,7 +84,7 @@ namespace
     {
         const EXCEPTION_RECORD& record = *info->ExceptionRecord;
         static std::atomic<int> reported{ 0 };
-        if (!IsFatal(record.ExceptionCode) || reported++ >= 4)
+        if (t_faultsExpected || !IsFatal(record.ExceptionCode) || reported++ >= 4)
             return EXCEPTION_CONTINUE_SEARCH;
 
         Log("!!! exception {:#010x} at {} thread {}", record.ExceptionCode, DescribeAddress(record.ExceptionAddress),

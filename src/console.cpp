@@ -221,14 +221,49 @@ namespace
         g_partialLine.erase(0, start);
     }
 
+    // The retail Printf is an empty function, and the linker folded every other empty function with it: callers of
+    // those pass anything at all as "format". Only readable, printable text is formatted, and a bad argument behind a
+    // real format string (the stub never looked at them either) fails the formatting instead of the game.
+    bool LooksLikeFormat(const char* format)
+    {
+        MEMORY_BASIC_INFORMATION mbi;
+        constexpr DWORD kReadable = PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READ |
+                                    PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
+        if (reinterpret_cast<uintptr_t>(format) < 0x10000 || !VirtualQuery(format, &mbi, sizeof(mbi)) ||
+            mbi.State != MEM_COMMIT || !(mbi.Protect & kReadable) || (mbi.Protect & (PAGE_GUARD | PAGE_NOACCESS)))
+            return false;
+        const char* pageEnd = static_cast<const char*>(mbi.BaseAddress) + mbi.RegionSize;
+        size_t length = 0;
+        for (const char* c = format; c < pageEnd && *c; ++c, ++length)
+            if ((static_cast<unsigned char>(*c) < 0x20 && *c != '\n' && *c != '\t' && *c != '\r') || length > 4096)
+                return false;
+        return length > 0;
+    }
+
+    int GuardedFormat(char* buffer, size_t size, const char* format, va_list args)
+    {
+        t_faultsExpected = true;
+        int written = -1;
+        __try
+        {
+            written = vsnprintf(buffer, size, format, args);
+        }
+        __except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
+        {
+            written = -1;
+        }
+        t_faultsExpected = false;
+        return written;
+    }
+
     void __cdecl Hook_Printf(const char* format, ...)
     {
-        if (!g_capture || !format)
+        if (!g_capture || !LooksLikeFormat(format))
             return;
         char buffer[2048];
         va_list args;
         va_start(args, format);
-        int written = vsnprintf(buffer, sizeof(buffer), format, args);
+        int written = GuardedFormat(buffer, sizeof(buffer), format, args);
         va_end(args);
         if (written > 0)
             AppendOutput(buffer);
