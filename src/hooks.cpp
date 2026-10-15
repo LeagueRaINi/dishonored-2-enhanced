@@ -328,12 +328,27 @@ namespace
 
     // ---- Context thunks -----------------------------------------------------------------------------------------
 
+    // Some runtimes implement one draw method with another (DrawIndexed -> DrawIndexedInstanced): only the outermost
+    // call of a draw is the game's, nested ones go straight to the original.
+    thread_local int t_drawDepth = 0;
+
     template <int N, typename... Args>
     struct DrawThunk
     {
         static inline void(STDMETHODCALLTYPE* original)(ID3D11DeviceContext*, Args...);
         static void STDMETHODCALLTYPE Fn(ID3D11DeviceContext* self, Args... args)
         {
+            if (t_drawDepth > 0)
+            {
+                original(self, args...);
+                return;
+            }
+            struct Depth
+            {
+                Depth() { ++t_drawDepth; }
+                ~Depth() { --t_drawDepth; }
+            } depth;
+
             // A full-screen pass: one triangle or quad (Draw, DrawIndexed) and, if instanced, a single instance.
             auto params = std::tuple(args...);
             bool fullscreen = std::get<0>(params) <= 6;
