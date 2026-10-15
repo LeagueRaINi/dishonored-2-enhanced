@@ -40,3 +40,4 @@ third_party/glslang_dl/
 # ---- Local tests and probes ----
 tools/test_*.cpp
 tools/interop_probe.cpp
+*.bak
