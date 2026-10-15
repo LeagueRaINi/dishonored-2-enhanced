@@ -1,0 +1,42 @@
+# ---- Reverse-engineering notes, databases and game files (private, never publish) ----
+re/
+*.exe
+*.i64
+*.idb
+*.id0
+*.id1
+*.id2
+*.nam
+*.til
+re/*disassembly*.txt
+re/latency_cvar_registrations.txt
+
+# ---- Build output ----
+build/
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
+src/shaders_generated.h
+
+# ---- Runtime output: logs, F8 captures, shader dumps, UI preview screenshots ----
+logs/
+captures/
+*.log
+
+# ---- Local environment and backups ----
+.venv/
+snapshots/
+__pycache__/
+*.pyc
+.vs/
+.vscode/
+
+# ---- Prebuilt third-party binaries and downloads (built or fetched locally) ----
+dxvk/*.dll
+third_party/glslang_dl/
+
+# ---- Local tests and probes ----
+tools/test_*.cpp
+tools/interop_probe.cpp
