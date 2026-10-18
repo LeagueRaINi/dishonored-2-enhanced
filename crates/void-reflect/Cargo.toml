@@ -1,0 +1,16 @@
+[package]
+name = "void-reflect"
+description = "Offline extraction of the engine's reflection metadata (class/member tables) from Dishonored2.exe"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+clap.workspace = true
+goblin = { version = "=0.10.7", default-features = false, features = ["std", "pe32", "pe64"] }
+iced-x86 = { workspace = true, features = ["std", "decoder", "instr_info"] }
+sha2.workspace = true
+
+[lints]
+workspace = true

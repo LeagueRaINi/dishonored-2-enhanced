@@ -1,0 +1,22 @@
+# Generated and private local material
+/target/
+/local/
+*.log
+
+# Native analysis and crash artifacts
+*.i64
+*.idb
+*.id0
+*.id1
+*.id2
+*.nam
+*.til
+*.dmp
+*.pdb
+
+# Editor and environment state
+/.vs/
+/.venv/
+__pycache__/
+
+# Keep Cargo.lock tracked for reproducible application builds.

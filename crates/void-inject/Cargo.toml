@@ -1,0 +1,56 @@
+[package]
+name = "void-inject"
+description = "In-process module for the original game: dinput8.dll proxy that replaces individual passes of its D3D11 renderer (FSR 4, profiler, cvar overrides, texture mods)"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "dinput8"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+void-res.workspace = true
+void-formats.workspace = true
+# Ray-tracing scene and photo-mode path tracer (in-process API `void_rt::ingame`).
+void-rt = { path = "../void-rt" }
+hex-literal = "1.1"
+arc-swap = "1.7"
+egui = "0.35"
+egui-directx11 = "0.13"
+egui_plot = "0.36"
+iced-x86 = { workspace = true, features = ["std", "code_asm"] }
+minhook = "=0.9.0"
+sha2.workspace = true
+windows = { version = "=0.62.2", features = [
+    "Win32_Foundation",
+    "Win32_System_LibraryLoader",
+    "Win32_System_SystemServices",
+    "Win32_System_SystemInformation",
+    "Win32_System_Threading",
+    "Win32_System_Memory",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D_Fxc",
+    "Win32_Graphics_Direct3D11",
+    "Win32_Graphics_Direct3D12",
+    "Win32_Graphics_Dxgi",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_Kernel",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Security",
+    "Win32_Graphics_Gdi",
+] }
+
+[dev-dependencies]
+iced-x86 = { workspace = true, features = ["std", "decoder", "intel"] }
+png = "0.18"
+
+# FFI, hooks, and game-memory access require `unsafe`; detours, D3D11/FFX calls, and the
+# checked memory reads/patches in `mem` are its only uses.
+[lints.rust]
+unsafe_code = "allow"
+unsafe_op_in_unsafe_fn = "deny"

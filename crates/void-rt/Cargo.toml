@@ -1,0 +1,30 @@
+[package]
+name = "void-rt"
+description = "Offline D3D12 ray tracing over the decoded static scene (DXR 1.1 inline RayQuery): BLAS/TLAS of a map, spike primary/reflection rays, photo-mode path tracer with engine materials, lights and a denoiser"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+void-res.workspace = true
+void-formats.workspace = true
+void-assets = { path = "../void-assets" }
+bcdec_rs = "0.2"
+clap.workspace = true
+png = "0.18"
+windows = { version = "=0.62.2", features = [
+    "Win32_Foundation",
+    "Win32_System_LibraryLoader",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D_Dxc",
+    "Win32_Graphics_Direct3D12",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+] }
+
+# D3D12/DXC calls and GPU buffer mapping require `unsafe`; it is confined to `gpu.rs`,
+# `accel.rs` and `dxc.rs` behind safe wrappers.
+[lints.rust]
+unsafe_code = "allow"
+unsafe_op_in_unsafe_fn = "deny"
