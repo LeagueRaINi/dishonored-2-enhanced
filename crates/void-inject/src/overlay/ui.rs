@@ -1185,6 +1185,16 @@ impl State {
                 "Show HUD and toasts during benchmarks",
                 "bench_show_overlay",
             );
+            check(
+                ui,
+                &mut s.diagnostics,
+                "Diagnostics (for bug reports; costs frame time)",
+                "diagnostics",
+            )
+            .on_hover_text(
+                "FSR value check and motion-vector statistics, FSR timing report and a \
+                 per-second frame summary in the log.",
+            );
         });
     }
 }

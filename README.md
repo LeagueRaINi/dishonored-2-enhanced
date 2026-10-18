@@ -27,6 +27,7 @@ game assets, extracted shaders or executables.
 | Engine cvar overrides | `cvar.<name> = <value>` | Default: `image_anisotropy 16` (Ultra leaves it at 1). |
 | Game patches | `patch.<id>` | Skip the boot videos; submit shadow command lists earlier (CPU-bound frames −0.5 ms). |
 | Overlay, performance HUD, profiler and benchmark | `overlay` (1, F2), `hud` (F7), `profile` (Ctrl+F3) | [docs/overlay.md](docs/overlay.md), [docs/performance-baseline.md](docs/performance-baseline.md) |
+| Diagnostics for bug reports | `diagnostics` (0) | FSR value check and motion-vector statistics (GPU passes every frame), the FSR timing report and a per-second frame summary in the log. Leave off for play. |
 
 ## Requirements
 
@@ -40,7 +41,23 @@ game assets, extracted shaders or executables.
   the AMD driver.
 - Ray-traced features: a GPU with DXR 1.1 (inline ray tracing, Shader Model 6.5).
 
-## Build and install
+## Install a release
+
+1. If the older C++ Dishonored 2 Enhanced (v0.1.0) is installed, remove it first. Delete
+   `d3d11.dll`, `d2enhanced.ini` and the `d2enhanced` folder, plus `dxgi.dll` and
+   `dxvk.conf` if you used its DXVK zip. Both mods replace the TAA pass, so only one can
+   be installed at a time.
+2. Extract the release zip into the game folder (`...\steamapps\common\Dishonored2`, next
+   to `Dishonored2.exe`). It contains `dinput8.dll`, AMD's signed FidelityFX DLLs and the
+   default settings file `void-rs\local\inject\void-inject.ini`.
+3. Start the game and press **F2** for the overlay. Keep the in-game anti-aliasing setting
+   on TAA when you use FSR.
+
+The log is `void-rs\local\inject\void-inject.log`; attach it to bug reports, ideally after
+a run with `diagnostics = 1`. To uninstall, delete `dinput8.dll`, the two
+`amd_fidelityfx_*_dx12.dll` files and the `void-rs` folder.
+
+## Build from source
 
 ```sh
 cargo build --release -p void-inject
@@ -50,11 +67,10 @@ Building needs a recent Rust toolchain (edition 2024; development uses nightly M
 also needs `dxc.exe` + `dxil.dll` from the Windows SDK (or set `VOID_DXC_DIR`) to precompile
 the ray-tracing shaders.
 
-Copy `target/release/dinput8.dll` next to `Dishonored2.exe`. On the first start the DLL
-creates its settings file `void-rs/local/inject/void-inject.ini` under the game folder, with
-every key commented. It writes the log to `void-inject.log` in the same folder. Most
-settings apply live from the overlay (F2), which can also save them. Remove `dinput8.dll` to
-uninstall.
+Copy `target/release/dinput8.dll` next to `Dishonored2.exe`. If the settings file is
+missing, the DLL creates `void-rs/local/inject/void-inject.ini` under the game folder on
+the first start, with every key commented. Most settings apply live from the overlay (F2),
+which can also save them.
 
 ## Repository layout
 

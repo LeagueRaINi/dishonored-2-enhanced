@@ -127,6 +127,10 @@ fn observe(requests: u64) {
     } else if !down {
         PROFILE_HELD.store(false, Ordering::Relaxed);
     }
+    // Frame/view summary once a second: a diagnostic (`diagnostics = 1`).
+    if !crate::settings::get().diagnostics {
+        return;
+    }
     let now = START.get().map_or(0, |s| s.elapsed().as_millis() as u64);
     let last = LAST_LOG_MS.load(Ordering::Relaxed);
     if now < last + 1000

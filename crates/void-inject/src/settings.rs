@@ -232,6 +232,9 @@ pub struct Settings {
     pub overlay_scale: Option<f32>,
     /// Toasts for events (`notify.rs`), also while the overlay menu is closed.
     pub notifications: bool,
+    /// Diagnostics with a runtime cost: FSR value check and motion-vector statistics, the
+    /// FSR timing report and the per-second frame/view log line. Off by default.
+    pub diagnostics: bool,
     /// Performance HUD (FPS, frame times, graph), also while the menu is closed.
     pub hud: bool,
     /// Virtual-key code that shows/hides the HUD (`hud_key = F7`).
@@ -367,6 +370,7 @@ impl Default for Settings {
             overlay_key: 0x71,
             overlay_scale: None,
             notifications: true,
+            diagnostics: false,
             hud: false,
             hud_key: 0x76,
             hud_position: Corner::TopLeft,
@@ -578,6 +582,10 @@ overlay_scale = auto
 # Toasts for events (benchmark, FSR, patches, texture mods, settings), also with the
 # overlay closed.
 notifications = 1
+# Diagnostics that cost frame time (for bug reports): FSR NaN/Inf value check and
+# motion-vector statistics (GPU passes every frame), the FSR timing report and a frame/view
+# summary in the log every second. Errors and state changes are logged either way. Live.
+diagnostics = 0
 # Performance HUD (FPS, frame times, small graph), shown with the overlay closed too;
 # hud_key toggles it (same key names as overlay_key); hud_position: top-left, top-right,
 # bottom-left, bottom-right.
@@ -791,6 +799,7 @@ pub const KEYS: &[Key] = &[
     key("overlay_key", true, "polled every frame"),
     key("overlay_scale", true, "applied every overlay frame"),
     key("notifications", true, "checked every frame"),
+    key("diagnostics", true, "checked every frame"),
     key("hud", true, "checked every frame (hud_key toggles it)"),
     key("hud_key", true, "polled every frame"),
     key("hud_position", true, "applied every HUD frame"),
@@ -894,6 +903,7 @@ fn apply_live(dst: &mut Settings, src: &Settings) {
     dst.overlay_key = src.overlay_key;
     dst.overlay_scale = src.overlay_scale;
     dst.notifications = src.notifications;
+    dst.diagnostics = src.diagnostics;
     dst.hud = src.hud;
     dst.hud_key = src.hud_key;
     dst.hud_position = src.hud_position;
@@ -1102,6 +1112,7 @@ pub fn value(s: &Settings, key: &str) -> Option<String> {
         "overlay_key" => key_name(s.overlay_key),
         "overlay_scale" => s.overlay_scale.map_or("auto".to_owned(), |v| v.to_string()),
         "notifications" => flag(s.notifications),
+        "diagnostics" => flag(s.diagnostics),
         "hud" => flag(s.hud),
         "hud_key" => key_name(s.hud_key),
         "hud_position" => s.hud_position.name().to_owned(),
@@ -1650,6 +1661,10 @@ fn apply(s: &mut Settings, k: &str, v: &str) -> bool {
             s.notifications = flag(v);
             true
         }
+        "diagnostics" => {
+            s.diagnostics = flag(v);
+            true
+        }
         "hud" => {
             s.hud = flag(v);
             true
@@ -1745,7 +1760,7 @@ mod tests {
     fn default_file_parses_to_defaults() {
         let (s, bad) = parse(&default_file());
         assert!(bad.is_empty(), "{bad:?}");
-        assert!(!s.profile && s.bench_uncap);
+        assert!(!s.profile && !s.diagnostics && s.bench_uncap);
         assert!(!s.texture_mods && s.mods_dir == "void-rs/mods");
         assert_eq!(s.bench_repeats, 3);
         assert!(s.overlay && s.overlay_key == 0x71 && s.overlay_scale.is_none());

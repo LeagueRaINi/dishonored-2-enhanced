@@ -875,6 +875,9 @@ Any failed hook disables only its feature; missing post-chain hooks disable upsc
   (`fsr: CPU waited X ms for D3D12 fence V`), every queued job replaced before its submission
   (`fsr: frame N job dropped ...`: that frame's `taaResult` was not written). Fence timeouts
   (2 s) already disable FSR with `fsr: frame N failed: GPU fence ... not reached`.
+  Since E090 the value check, the motion-vector statistics, the per-1200-frame report and
+  the per-second frame/view log run only with `diagnostics = 1` (default 0). The guards, the
+  spike / fence / drop logs and the D3D12 timestamps feeding the HUD stay on.
 - **Motion-vector coverage and debug views (2026-10-18, `fsr_motion.rs`; E080).** User: in
   FFX's debug view (Shift+F6, upper-left = motion vectors) only things within ~3-5 m move
   (own hands / sword); NPCs walking farther away look still, camera standing still.

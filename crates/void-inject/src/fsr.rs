@@ -596,8 +596,12 @@ fn execute_job(ctx: &ID3D11DeviceContext, mut job: Job) -> bool {
 }
 
 /// Starts the frame's value check (`fsr_check.rs`) and scans the colour before our
-/// reflections change it (stage 0, only when SSR runs this frame).
+/// reflections change it (stage 0, only when SSR runs this frame). Only with
+/// `diagnostics = 1`; otherwise the check stays closed and every later scan is a no-op.
 fn begin_check(ctx: &ID3D11DeviceContext, job: &Job) {
+    if !settings::get().diagnostics {
+        return;
+    }
     let mut rt = RUNTIME
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
@@ -2159,7 +2163,11 @@ impl Runtime {
         if let Some(c) = &self.check {
             c.scan(ctx, &color, job.render, 1);
         }
-        if let Some(m) = self.motion_stats.as_mut() {
+        if let Some(m) = self
+            .motion_stats
+            .as_mut()
+            .filter(|_| settings::get().diagnostics)
+        {
             m.frame(
                 ctx,
                 &motion,
@@ -2877,6 +2885,14 @@ impl Runtime {
 
     fn report(&mut self) {
         let mut v = std::mem::take(&mut self.gpu_ms);
+        let cpu = std::mem::take(&mut self.cpu_ms);
+        let (ns, n) = (
+            CAPTURE_NS.swap(0, Ordering::Relaxed),
+            CAPTURE_N.swap(0, Ordering::Relaxed),
+        );
+        if !settings::get().diagnostics {
+            return;
+        }
         v.sort_by(f32::total_cmp);
         let q = |v: &[f32], f: f64| {
             v.get(((v.len() as f64 - 1.0).max(0.0) * f).round() as usize)
@@ -2894,16 +2910,11 @@ impl Runtime {
             v.last().copied().unwrap_or(0.0),
             v.len()
         ));
-        let cpu = std::mem::take(&mut self.cpu_ms);
         let part = |i: usize| {
             let mut c: Vec<f32> = cpu.iter().map(|x| x[i]).collect();
             c.sort_by(f32::total_cmp);
             format!("{:.3}/{:.3}", q(&c, 0.5), q(&c, 0.99))
         };
-        let (ns, n) = (
-            CAPTURE_NS.swap(0, Ordering::Relaxed),
-            CAPTURE_N.swap(0, Ordering::Relaxed),
-        );
         log::line(&format!(
             "fsr: CPU ms p50/p99 on the submit path: pack+flush {}, D3D12 submit {}, wait+unpack+resample {}, total {}; record-time capture avg {:.3}",
             part(0),
@@ -3112,6 +3123,8 @@ pub fn offline_check(
     use crate::fsr_scale::{halton_offset, phase_count, snap_render, table_entry};
     use windows::Win32::Foundation::HMODULE;
     use windows::Win32::Graphics::Direct3D::{D3D_DRIVER_TYPE_HARDWARE, D3D_FEATURE_LEVEL_11_1};
+    // The value check and motion statistics are part of what this harness verifies.
+    settings::edit(|s| s.diagnostics = true);
     let loader = ffx::Loader::load(ffx_dir)?;
     let [w, h] = size;
     let (mut device, mut ctx) = (None, None);
